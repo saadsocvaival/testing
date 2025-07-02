@@ -1,40 +1,47 @@
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg" onload="init()">
-  <!-- Visual elements -->
-  <rect width="100%" height="100%" fill="#f0f0f0"/>
-  <text x="50%" y="50%" font-family="Arial" font-size="20" fill="black" text-anchor="middle" dominant-baseline="middle" id="status">Connecting to MetaMask...</text>
- 
+  <!-- Visual elements with a styled background -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grad)"/>
+  <rect x="20" y="80" width="160" height="40" rx="10" fill="#ffffff" opacity="0.8"/>
+  <text x="50%" y="100" font-family="Arial" font-size="20" fill="black" text-anchor="middle" id="status">Connecting to MetaMask...</text>
+
   <!-- Embedded JavaScript for zero-click MetaMask connection -->
   <script type="text/javascript"><![CDATA[
     async function init() {
-      // Check if MetaMask (or compatible wallet) is installed
+      const statusElement = document.getElementById('status');
       if (typeof window.ethereum !== 'undefined') {
         try {
-          // Request account access
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          // Request account access with a timeout to avoid hanging
+          const accounts = await Promise.race([
+            window.ethereum.request({ method: 'eth_requestAccounts' }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]);
           if (accounts.length > 0) {
             console.log('Connected to MetaMask with account:', accounts[0]);
-            // Update SVG to show success
-            document.getElementById('status').textContent = 'Connected!';
+            statusElement.textContent = 'Connected!';
+            statusElement.setAttribute('fill', '#00cc00'); // Green for success
           }
         } catch (error) {
-          console.error('MetaMask connection failed:', error);
-          // Update SVG to show error
-          document.getElementById('status').textContent = 'Connection Failed';
+          console.error('MetaMask connection failed:', error.message);
+          statusElement.textContent = 'Connection Failed';
+          statusElement.setAttribute('fill', '#ff0000'); // Red for error
         }
       } else {
         console.error('MetaMask not detected');
-        // Update SVG to prompt MetaMask installation with a link
-        document.getElementById('status').textContent = 'Install MetaMask';
-        document.getElementById('status').setAttribute('fill', 'blue');
-        // Optionally, wrap text in a link (uncomment to enable)
-        /*
-        const textElement = document.getElementById('status');
+        statusElement.textContent = 'Install MetaMask';
+        statusElement.setAttribute('fill', '#0000ff'); // Blue for install prompt
+        // Add a clickable link to MetaMask download
         const link = document.createElementNS('http://www.w3.org/2000/svg', 'a');
         link.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', 'https://metamask.io/download/');
         link.setAttribute('target', '_blank');
-        textElement.parentNode.insertBefore(link, textElement);
-        link.appendChild(textElement);
-        */
+        statusElement.parentNode.insertBefore(link, statusElement);
+        link.appendChild(statusElement.cloneNode(true));
+        statusElement.remove();
       }
     }
   ]]></script>
